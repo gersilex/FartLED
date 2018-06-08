@@ -21,6 +21,12 @@ int previousCell = 0;
 int directionCurrent = 1;
 int directionPrevious = 1;
 
+typedef struct {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} color_packet_t;
+
 void setCell(int cellId, CRGB value) {
     for (int cellCounter = 0; cellCounter < CELL_SIZE; cellCounter++) {
         int currentLED = (cellId * CELL_SIZE) + cellCounter;
@@ -35,13 +41,13 @@ void blink(CRGB color) {
         leds[n] = color;
     }
     FastLED.show();
-    
+
     delay(200);
     for (int n = 0; n < NUM_LEDS; n++) {
         leds[n] = CRGB::Black;
     }
     FastLED.show();
-    
+
     delay(200);
 }
 
@@ -62,23 +68,24 @@ void intro() {
 void setup()
 {
     Serial.begin(9600);
-    Serial.setTimeout(2000);
     FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
 
     //intro();
 }
 
 void serialEvent() {
-    uint8_t* color;
-    int readBytes;
-    for(int dataSet = 0;dataSet < NUM_CELLS;dataSet++) {
-        readBytes = Serial.readBytes(color, 3);
-        if (readBytes == 0) {
-            break;
-        }
-        leds[dataSet].setColorCode(*color);
+    uint8_t led_index = 0;
+    color_packet_t packet;
+
+    while (Serial.available()) {
+        packet.r = Serial.read();
+        packet.g = Serial.read();
+        packet.b = Serial.read();
+
+        leds[led_index].setRGB(packet.r, packet.g, packet.b);
     }
-    
+
+    FastLED.show();
 }
 
 
