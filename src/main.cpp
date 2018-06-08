@@ -76,13 +76,19 @@ void setup()
 void serialEvent() {
     uint8_t led_index = 0;
     color_packet_t packet;
+    CRGB* buffer;
 
     while (Serial.available()) {
-        packet.r = Serial.read();
-        packet.g = Serial.read();
-        packet.b = Serial.read();
+        leds[led_index].setRGB(
+            Serial.read(),
+            Serial.read(),
+            Serial.read()
+        );
+        //packet.r = Serial.read();
+        //packet.g = Serial.read();
+        //packet.b = Serial.read();
 
-        leds[led_index].setRGB(packet.r, packet.g, packet.b);
+        //leds[led_index].setRGB(packet.r, packet.g, packet.b);
     }
 
     FastLED.show();
