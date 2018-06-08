@@ -75,13 +75,17 @@ void setup()
 
 void serialEvent() {
     uint8_t led_index = 0;
-
+    String input;
     while (Serial.available() && led_index < NUM_LEDS) {
-        leds[led_index++].setRGB(
-            Serial.read(),
-            Serial.read(),
-            Serial.read()
-        );
+        input = Serial.readStringUntil(',');
+        uint32_t color = strtoul(input.c_str(), nullptr, 16);
+        leds[led_index++].setColorCode(color);
+
+        // leds[led_index++].setRGB(
+        //     Serial.read(),
+        //     Serial.read(),
+        //     Serial.read()
+        // );
 
         FastLED.show();
         delay(2);
@@ -90,8 +94,6 @@ void serialEvent() {
     while (Serial.available()) {
         Serial.read();
     }
-
-    FastLED.show();
 }
 
 void loop()
