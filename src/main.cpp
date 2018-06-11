@@ -21,6 +21,8 @@ int previousCell = 0;
 int directionCurrent = 1;
 int directionPrevious = 1;
 
+bool isTalkingWithSerial = false;
+
 typedef struct {
     uint8_t r;
     uint8_t g;
@@ -70,22 +72,18 @@ void setup()
     Serial.begin(9600);
     FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
 
-    //intro();
+    intro();
 }
 
 void serialEvent() {
+
+    isTalkingWithSerial = true;
     uint8_t led_index = 0;
     String input;
     while (Serial.available() && led_index < NUM_LEDS) {
         input = Serial.readStringUntil(',');
         uint32_t color = strtoul(input.c_str(), nullptr, 16);
         leds[led_index++].setColorCode(color);
-
-        // leds[led_index++].setRGB(
-        //     Serial.read(),
-        //     Serial.read(),
-        //     Serial.read()
-        // );
 
         FastLED.show();
         delay(2);
@@ -98,22 +96,26 @@ void serialEvent() {
 
 void loop()
 {
-    // setCell(currentCell+=directionCurrent, CRGB::Red);
-    // setCell(previousCell+= directionPrevious, CRGB::Black);
+    if (!isTalkingWithSerial) {
 
-    // if (currentCell == NUM_CELLS) {
-    //     directionCurrent = -1;
-    // } else if(currentCell == 0) {
-    //     directionCurrent = 1;
-    // }
 
-    // if (previousCell == NUM_CELLS) {
-    //     directionPrevious = -1;
-    // } else if(previousCell == 0) {
-    //     directionPrevious = 1;
-    // }
+    setCell(currentCell+=directionCurrent, CRGB::Red);
+    setCell(previousCell+= directionPrevious, CRGB::Black);
+
+    if (currentCell == NUM_CELLS) {
+        directionCurrent = -1;
+    } else if(currentCell == 0) {
+        directionCurrent = 1;
+    }
+
+    if (previousCell == NUM_CELLS) {
+        directionPrevious = -1;
+    } else if(currentCell == 0) {
+        directionPrevious = 1;
+    }
 
     FastLED.show();
     delay(FRAMETIME);
+    }
 }
 
