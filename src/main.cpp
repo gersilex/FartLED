@@ -1,121 +1,82 @@
-#include <stdio.h>
+// Funktioniert nur im 59er Netz, an Wilkos Kabel
+// Hier kein subnetz, dns oder gw rein, weil wir nicht antworten wollen
+
 #include <Arduino.h>
-#include <FastLED.h>
-#include <SPI.h>
+#include <SPI.h>         // needed for Arduino versions later than 0018
+#include <Ethernet.h>
+#include <EthernetUdp.h>         // UDP library from: bjoern@cs.stanford.edu 12/30/2008
 
-// Physical constants
-#define DATA_PIN 6
-#define CELL_SIZE 3
-#define NUM_LEDS 54
 
-// Application onstants
-#define NUM_CELLS NUM_LEDS / CELL_SIZE
-#define FRAMES 60
-#define FRAMETIME 1000 / FRAMES
+// Enter a MAC address and IP address for your controller below.
+// The IP address will be dependent on your local network:
+byte mac[] = {
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
+};
 
-CRGB leds[NUM_LEDS];
-CRGB ledColor = CRGB::White;
-int currentCell = 1;
-int previousCell = 0;
+unsigned int localPort = 8888;      // local port to listen on
 
-int directionCurrent = 1;
-int directionPrevious = 1;
+// buffers for receiving and sending data
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  // buffer to hold incoming packet,
 
-bool isTalkingWithSerial = false;
+// An EthernetUDP instance to let us send and receive packets over UDP
+EthernetUDP Udp;
 
-typedef struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} color_packet_t;
+void setup() {
+  // You can use Ethernet.init(pin) to configure the CS pin
+  //Ethernet.init(10);  // Most Arduino shields
+  //Ethernet.init(5);   // MKR ETH shield
+  //Ethernet.init(0);   // Teensy 2.0
+  //Ethernet.init(20);  // Teensy++ 2.0
+  //Ethernet.init(15);  // ESP8266 with Adafruit Featherwing Ethernet
+  //Ethernet.init(33);  // ESP32 with Adafruit Featherwing Ethernet
 
-void setCell(int cellId, CRGB value) {
-    for (int cellCounter = 0; cellCounter < CELL_SIZE; cellCounter++) {
-        int currentLED = (cellId * CELL_SIZE) + cellCounter;
-        if (currentLED < NUM_LEDS) {
-            leds[(cellId * CELL_SIZE) + cellCounter] = value;
-        }
-    }
+  Serial.begin(9600);
+
+  // start the Ethernet and UDP:
+  Serial.println("Initialize Ethernet:");
+  Ethernet.begin(
+    mac,
+    IPAddress(192,168,59,72)
+  );
+  Serial.print("IP: ");
+  Serial.println(Ethernet.localIP());
+  Serial.print("GW: ");
+  Serial.println(Ethernet.gatewayIP());
+  Serial.print("DNS: ");
+  Serial.println(Ethernet.dnsServerIP());
+  Serial.print("Subnet: ");
+  Serial.println(Ethernet.subnetMask());
+  // give the Ethernet shield a second to initialize:
+  delay(1000);
+  Udp.begin(localPort);
+
 }
 
-void blink(CRGB color) {
-    for (int n = 0; n < NUM_LEDS; n++) {
-        leds[n] = color;
+void loop() {
+  // if there's data available, read a packet
+  int packetSize = Udp.parsePacket();
+  if (packetSize) {
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+    IPAddress remote = Udp.remoteIP();
+    for (int i=0; i < 4; i++) {
+      Serial.print(remote[i], DEC);
+      if (i < 3) {
+        Serial.print(".");
+      }
     }
-    FastLED.show();
+    Serial.print(", port ");
+    Serial.println(Udp.remotePort());
 
-    delay(200);
-    for (int n = 0; n < NUM_LEDS; n++) {
-        leds[n] = CRGB::Black;
-    }
-    FastLED.show();
+    // read the packet into packetBufffer
+    Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+    Serial.println("Contents:");
+    Serial.println(packetBuffer);
 
-    delay(200);
+    // send a reply to the IP address and port that sent us the packet we received
+    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+    Udp.endPacket();
+  }
+  delay(10);
 }
-
-void intro() {
-    for (int n = 0;n < NUM_LEDS; n++) {
-        leds[n] = CRGB::White;
-
-        FastLED.show();
-        delay(FRAMETIME / 2);
-    }
-    delay(500);
-    blink(CRGB::Black);
-    blink(CRGB::Red);
-    blink(CRGB::Green);
-    blink(CRGB::Blue);
-}
-
-void setup()
-{
-    Serial.begin(9600);
-    FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
-
-    intro();
-}
-
-void serialEvent() {
-
-    isTalkingWithSerial = true;
-    uint8_t led_index = 0;
-    String input;
-    while (Serial.available() && led_index < NUM_LEDS) {
-        input = Serial.readStringUntil(',');
-        uint32_t color = strtoul(input.c_str(), nullptr, 16);
-        leds[led_index++].setColorCode(color);
-
-        FastLED.show();
-        delay(2);
-    }
-
-    while (Serial.available()) {
-        Serial.read();
-    }
-}
-
-void loop()
-{
-    if (!isTalkingWithSerial) {
-
-
-    setCell(currentCell+=directionCurrent, CRGB::Red);
-    setCell(previousCell+= directionPrevious, CRGB::Black);
-
-    if (currentCell == NUM_CELLS) {
-        directionCurrent = -1;
-    } else if(currentCell == 0) {
-        directionCurrent = 1;
-    }
-
-    if (previousCell == NUM_CELLS) {
-        directionPrevious = -1;
-    } else if(currentCell == 0) {
-        directionPrevious = 1;
-    }
-
-    FastLED.show();
-    delay(FRAMETIME);
-    }
-}
-
