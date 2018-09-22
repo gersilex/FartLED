@@ -3,9 +3,10 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+
+#include <PositionCalculator.h>
 
 byte mac[] = {
   0xB0, 0x0B, 0x13, 0x5B, 0x16, 0x05
