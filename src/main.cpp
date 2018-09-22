@@ -19,9 +19,10 @@ unsigned int localPort = 8888;      // local port to listen on
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  // buffer to hold incoming packet,
 
 // An EthernetUDP instance to let us send and receive packets over UDP
-EthernetUDP Udp;
+EthernetUDP udp;
 
-void setup() {
+void initializeUpdConnection(uint8_t first, uint8_t second, uint8_t third, uint8_t last) {
+
   // You can use Ethernet.init(pin) to configure the CS pin
   //Ethernet.init(10);  // Most Arduino shields
   //Ethernet.init(5);   // MKR ETH shield
@@ -34,9 +35,10 @@ void setup() {
 
   // start the Ethernet and UDP:
   Serial.println("Initialize Ethernet:");
+
   Ethernet.begin(
     mac,
-    IPAddress(192,168,59,72)
+    IPAddress(first, second, third, last)
   );
   Serial.print("IP: ");
   Serial.println(Ethernet.localIP());
@@ -48,18 +50,21 @@ void setup() {
   Serial.println(Ethernet.subnetMask());
   // give the Ethernet shield a second to initialize:
   delay(1000);
-  Udp.begin(localPort);
+  udp.begin(localPort);
+}
 
+void setup() {
+    initializeUpdConnection(192, 168, 59, 72);
 }
 
 void loop() {
   // if there's data available, read a packet
-  int packetSize = Udp.parsePacket();
+  int packetSize = udp.parsePacket();
   if (packetSize) {
     Serial.print("Received packet of size ");
     Serial.println(packetSize);
     Serial.print("From ");
-    IPAddress remote = Udp.remoteIP();
+    IPAddress remote = udp.remoteIP();
     for (int i=0; i < 4; i++) {
       Serial.print(remote[i], DEC);
       if (i < 3) {
@@ -67,16 +72,16 @@ void loop() {
       }
     }
     Serial.print(", port ");
-    Serial.println(Udp.remotePort());
+    Serial.println(udp.remotePort());
 
     // read the packet into packetBufffer
-    Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+    udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
     Serial.println("Contents:");
     Serial.println(packetBuffer);
 
     // send a reply to the IP address and port that sent us the packet we received
-    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.endPacket();
+    udp.beginPacket(udp.remoteIP(), udp.remotePort());
+    udp.endPacket();
   }
   delay(10);
 }
