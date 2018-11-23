@@ -31,6 +31,7 @@ class PositionCalculator
 public:
     PositionCalculator(MatrixConfig config);
     Position translate(int row, int column);
+
 };
 
 #endif // __POSITION_CALCULATOR
