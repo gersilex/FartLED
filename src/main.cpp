@@ -1,71 +1,85 @@
-/*
- Chat Server
-
- A simple server that distributes any incoming messages to all
- connected clients.  To use, telnet to your device's IP address and type.
- You can see the client's input in the serial monitor as well.
- Using an Arduino Wiznet Ethernet shield.
-
- Circuit:
- * Ethernet shield attached to pins 10, 11, 12, 13
-
- created 18 Dec 2009
- by David A. Mellis
- modified 9 Apr 2012
- by Tom Igoe
-
- */
-
 #include <SPI.h>
 #include <Ethernet.h>
 
-// Enter a MAC address and IP address for your controller below.
-// The IP address will be dependent on your local network.
-// gateway and subnet are optional:
-byte mac[] = {
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-IPAddress ip(192, 168, 59, 222);
+/////////////// Configuration ///////////////
+// Networking
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+IPAddress fallbackIP(192, 168, 59, 222);
+#define DHCP_TIMEOUT_MS 1000L
+#define LED_STREAM_PORT 41
+#define CONTROL_PORT 23
+/////////////////////////////////////////////
 
+EthernetServer ledStreamServer(41);
+bool usingDhcp = false;
 
-// telnet defaults to port 23
-EthernetServer server(23);
-boolean alreadyConnected = false; // whether or not the client was connected previously
+// void statusLed(uint8_t cell, colorstructTODO color){
+//   TODO: For the setup phase, provide a function to set a cell to a specific color to be able to visualize the setup step and occured problems.
+//   TODO: The color struct is yet to be created
+// }
 
-void setup() {
-  // You can use Ethernet.init(pin) to configure the CS pin
-  //Ethernet.init(10);  // Most Arduino shields
-  //Ethernet.init(5);   // MKR ETH shield
-  //Ethernet.init(0);   // Teensy 2.0
-  //Ethernet.init(20);  // Teensy++ 2.0
-  //Ethernet.init(15);  // ESP8266 with Adafruit Featherwing Ethernet
-  //Ethernet.init(33);  // ESP32 with Adafruit Featherwing Ethernet
-
-  // initialize the ethernet device
-  Ethernet.begin(mac, ip);
-  // start listening for clients
-  server.begin();
-  // Open serial communications and wait for port to open:
+void serialSetup()
+{
   Serial.begin(9600);
-   while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
-
-  Serial.print("Listening on port 23 at ");
-  Serial.println(Ethernet.localIP());
+  Serial.println(" :: FartLED :: ");
+  Serial.println("Serial console started.");
 }
 
-void loop() {
-  // wait for a new client:
-  EthernetClient client = server.available();
+void ledSetup()
+{
+  // stub
+  // TODO: Configure FastLED, Power ON all colors of all LEDs, then cycle through only Red, only Green and only Blue, wait 1 seconds between those 4 steps
+}
 
-  // when the client sends the first byte, say hello:
-  if (client) {
-    if (!alreadyConnected) {
-      // clear out the input buffer:
-      client.flush();
-      Serial.println("We have a new client");
-      client.println("Hello, client!");
-      alreadyConnected = true;
-    }
+void networkSetup()
+{
+  Serial.print("Broadcasting DHCP Request... ");
+  if (Ethernet.begin(mac, DHCP_TIMEOUT_MS) == 1)
+  {
+    Serial.print("succeeded: ");
+    Serial.println(Ethernet.localIP());
+    usingDhcp = true;
   }
+  else
+  {
+    Serial.print("failed. Falling back to hard-coded static IP: ");
+    Serial.println(fallbackIP);
+  }
+
+  ledStreamServer.begin();
+  Serial.print("Ready to receive LED stream data on tcp/");
+  Serial.print(LED_STREAM_PORT);
+  Serial.println(".");
+}
+
+void handleLedStream()
+{
+  EthernetClient client = ledStreamServer.available(); // A client connected
+
+  if (client) // Is the client sending data?
+  {
+    Serial.print("Client ");
+    Serial.print(client.remoteIP());
+    Serial.print(":");
+    Serial.print(client.remotePort());
+    Serial.print(" sent: ");
+    Serial.println(client.read());
+  }
+}
+
+void setup()
+{
+  serialSetup();
+  ledSetup();
+  networkSetup();
+}
+
+void loop()
+{
+  if (usingDhcp)
+  {
+    Ethernet.maintain();
+  }
+
+  handleLedStream();
 }
