@@ -5,9 +5,10 @@
 // Networking
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress fallbackIP(192, 168, 59, 222);
-#define DHCP_TIMEOUT_MS 1000L
+#define DHCP_TIMEOUT_MS 10000L
 #define LED_STREAM_PORT 41
 #define CONTROL_PORT 23
+#define PROTOCOL_VERSION 0
 /////////////////////////////////////////////
 
 EthernetServer ledStreamServer(41);
@@ -63,7 +64,29 @@ void handleLedStream()
     Serial.print(":");
     Serial.print(client.remotePort());
     Serial.print(" sent: ");
-    Serial.println(client.read());
+    Serial.println(client.peek(), 2);
+
+    byte incoming = client.read();
+    byte incomingProtocolVersion = (incoming & 0xF0) >> 4;
+    byte incomingCellScale= incoming & 0x0F;
+
+    Serial.print("Client presents header with protocol version: ");
+    Serial.println(incomingProtocolVersion);
+    if(incomingProtocolVersion != PROTOCOL_VERSION){
+      Serial.print("ERROR: Protocol mismatch. Client protocol version ");
+      Serial.print(incomingProtocolVersion);
+      Serial.print(" is incompatible with this protocol version ");
+      Serial.print(PROTOCOL_VERSION);
+      Serial.println(". Closing connection.");
+      client.stop();
+    }
+
+    Serial.print("Client requests cell scale of: ");
+    Serial.println(incomingCellScale);
+
+    uint8_t incomingMessageLength = client.read();
+    Serial.print("Client presents message length of: ");
+    Serial.println(incomingMessageLength);
   }
 }
 
