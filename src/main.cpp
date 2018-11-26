@@ -6,17 +6,17 @@
 // Networking
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress fallbackIP(192, 168, 59, 222);
-#define DHCP_TIMEOUT_MS 10000L
+#define DHCP_TIMEOUT_MS 20000L
 #define LED_STREAM_PORT 41
 #define CONTROL_PORT 23
 #define PROTOCOL_VERSION 0
 
 // LED Setup
-#define LED_COUNT 150
+#define LED_COUNT 4
 #define LED_DATA_PIN 6
 #define CELL_SCALE 2
 #define ROWS 8
-#define COLS 8
+#define COLS 1
 // #define LED_TEST_AT_BOOT
 /////////////////////////////////////////////
 
@@ -108,6 +108,7 @@ void networkSetup()
     setStatusRow(1, CRGB::Orange);
     Serial.print("failed. Falling back to hard-coded static IP: ");
     Serial.println(fallbackIP);
+    delay(1000);
   }
 
   ledStreamServer.begin();
@@ -131,13 +132,6 @@ void handleLedStream()
 
   if (client) // Is the client sending data?
   {
-    Serial.print("Client ");
-    Serial.print(client.remoteIP());
-    Serial.print(":");
-    Serial.print(client.remotePort());
-    Serial.print(" sent: ");
-    Serial.println(client.peek(), 16);
-
     byte incoming = client.read();
     byte incomingProtocolVersion = (incoming & 0xF0) >> 4;
     byte incomingCellScale = incoming & 0x0F;
@@ -161,17 +155,20 @@ void handleLedStream()
     Serial.print("Client presents message length of: ");
     Serial.println(incomingMessageLength);
 
-    Serial.print("Ready to receive ");
+    Serial.print("Writing ");
     Serial.print(incomingMessageLength * 3);
-    Serial.println(" bytes.");
+    Serial.println(" bytes to framebuffer.");
 
-    for (uint16_t i = 0; i < incomingMessageLength * 3; i++)
-    {
-      Serial.print(client.read(), 16);
-      Serial.print(',');
+    client.readBytes( (char*)leds, incomingMessageLength * 3);
+
+    for(int i=0; i < LED_COUNT;i++){
+      Serial.print(leds[i].red, 16);
+      Serial.print(" ");
+      Serial.print(leds[i].green, 16);
+      Serial.print(" ");
+      Serial.print(leds[i].blue, 16);
+      Serial.println();
     }
-    Serial.println();
-    Serial.println("--- End of message ---");
   }
 }
 
