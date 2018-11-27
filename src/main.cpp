@@ -6,17 +6,18 @@
 // Networking
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress fallbackIP(192, 168, 59, 222);
-#define DHCP_TIMEOUT_MS 60000L
+#define DHCP_TIMEOUT_MS 2000L
 #define LED_STREAM_PORT 41
 #define CONTROL_PORT 23
 #define PROTOCOL_VERSION 0
 
 // LED Setup
 #define ROWS 8
-#define COLS 1
-#define CELL_SCALE 1
-#define LED_COUNT ROWS * COLS * CELL_SCALE
-#define LED_DATA_PIN 6
+#define COLS 8
+#define CELL_SCALE 2
+#define CELL_COUNT (ROWS * COLS)
+#define LED_COUNT (CELL_COUNT * CELL_SCALE)
+#define LED_DATA_PIN 3
 #define LED_TEST_AT_BOOT
 /////////////////////////////////////////////
 
@@ -44,24 +45,14 @@ void serialSetup()
 
 void ledSetup()
 {
-  // stub
-  // TODO: Configure FastLED, Power ON all colors of all LEDs, then cycle through only Red, only Green and only Blue, wait 1 seconds between those 4 steps
   FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>(leds, LED_COUNT);
 
 #ifdef LED_TEST_AT_BOOT
-  setStatusRow(0, CRGB::DarkGray);
+  setStatusRow(0, CRGB::DimGray);
   Serial.print("Testing LEDs: ");
 
-  Serial.print("[all] ");
-  for (uint16_t i = 4; i <= 255; i *= 2)
-  {
-    FastLED.showColor(CRGB::White, i);
-    delay(500);
-  }
-  delay(1000);
-
   Serial.print("[single] ");
-  for (int i = LED_COUNT-1; i >= 0; i--)
+  for (int i = LED_COUNT - 1; i >= 0; i--)
   {
     leds[i] = CRGB::White;
     FastLED.show();
@@ -80,6 +71,17 @@ void ledSetup()
   FastLED.showColor(CRGB::Blue);
   delay(1000);
 
+  Serial.print("[all] ");
+  unsigned long timeout = millis() + 10000;
+  while(millis() < timeout){
+    fill_rainbow(leds, LED_COUNT, millis() / 10);
+    FastLED.show();
+  }
+
+  Serial.print("[30s burn-in] ");
+  FastLED.showColor(CRGB::White);
+  delay(30000);
+
   FastLED.clear();
   FastLED.show();
   Serial.println("done.");
@@ -90,7 +92,7 @@ void ledSetup()
 
 void networkSetup()
 {
-  setStatusRow(1, CRGB::DarkGray);
+  setStatusRow(1, CRGB::DimGray);
   Serial.print("Broadcasting DHCP Request... ");
   if (Ethernet.begin(mac, DHCP_TIMEOUT_MS) == 1)
   {
@@ -103,7 +105,7 @@ void networkSetup()
     setStatusRow(1, CRGB::Blue);
     Serial.print("failed. Falling back to hard-coded static IP: ");
     Serial.println(fallbackIP);
-    delay(1000);
+    delay(2000);
   }
 
   ledStreamServer.begin();
@@ -119,7 +121,7 @@ void networkSetup()
     Serial.print(LED_STREAM_PORT);
     Serial.println(".");
   }
-  setStatusRow(2, CRGB::DarkGray);
+  setStatusRow(2, CRGB::DimGray);
 }
 
 void handleLedStream()
@@ -196,6 +198,6 @@ void loop()
   {
     Ethernet.maintain();
   }
-
   handleLedStream();
+  FastLED.show();
 }
