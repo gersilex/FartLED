@@ -6,29 +6,24 @@
 // Networking
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress fallbackIP(192, 168, 59, 222);
-#define DHCP_TIMEOUT_MS 20000L
+#define DHCP_TIMEOUT_MS 60000L
 #define LED_STREAM_PORT 41
 #define CONTROL_PORT 23
 #define PROTOCOL_VERSION 0
 
 // LED Setup
-#define LED_COUNT 4
-#define LED_DATA_PIN 6
-#define CELL_SCALE 2
 #define ROWS 8
 #define COLS 1
-// #define LED_TEST_AT_BOOT
+#define CELL_SCALE 1
+#define LED_COUNT ROWS * COLS * CELL_SCALE
+#define LED_DATA_PIN 6
+#define LED_TEST_AT_BOOT
 /////////////////////////////////////////////
 
 EthernetServer ledStreamServer(41);
 bool usingDhcp = false;
 
 CRGB leds[LED_COUNT];
-
-// void statusLed(uint8_t cell, colorstructTODO color){
-//   TODO: For the setup phase, provide a function to set a cell to a specific color to be able to visualize the setup step and occured problems.
-//   TODO: The color struct is yet to be created
-// }
 
 void setStatusRow(uint8_t row, CRGB color)
 {
@@ -42,7 +37,7 @@ void setStatusRow(uint8_t row, CRGB color)
 
 void serialSetup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println(" :: FartLED :: ");
   Serial.println("Serial console started.");
 }
@@ -54,6 +49,7 @@ void ledSetup()
   FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>(leds, LED_COUNT);
 
 #ifdef LED_TEST_AT_BOOT
+  setStatusRow(0, CRGB::DarkGray);
   Serial.print("Testing LEDs: ");
 
   Serial.print("[all] ");
@@ -65,7 +61,7 @@ void ledSetup()
   delay(1000);
 
   Serial.print("[single] ");
-  for (int i = LED_COUNT; i >= 0; --i)
+  for (int i = LED_COUNT-1; i >= 0; i--)
   {
     leds[i] = CRGB::White;
     FastLED.show();
@@ -94,18 +90,17 @@ void ledSetup()
 
 void networkSetup()
 {
-  setStatusRow(1, CRGB::Blue);
+  setStatusRow(1, CRGB::DarkGray);
   Serial.print("Broadcasting DHCP Request... ");
   if (Ethernet.begin(mac, DHCP_TIMEOUT_MS) == 1)
   {
-    setStatusRow(1, CRGB::Yellow);
     Serial.print("succeeded: ");
     Serial.println(Ethernet.localIP());
     usingDhcp = true;
   }
   else
   {
-    setStatusRow(1, CRGB::Orange);
+    setStatusRow(1, CRGB::Blue);
     Serial.print("failed. Falling back to hard-coded static IP: ");
     Serial.println(fallbackIP);
     delay(1000);
@@ -124,6 +119,7 @@ void networkSetup()
     Serial.print(LED_STREAM_PORT);
     Serial.println(".");
   }
+  setStatusRow(2, CRGB::DarkGray);
 }
 
 void handleLedStream()
@@ -136,7 +132,7 @@ void handleLedStream()
     byte incomingProtocolVersion = (incoming & 0xF0) >> 4;
     byte incomingCellScale = incoming & 0x0F;
 
-    Serial.print("Client presents header with protocol version: ");
+    Serial.print("Client presents protocol version: ");
     Serial.println(incomingProtocolVersion);
     if (incomingProtocolVersion != PROTOCOL_VERSION)
     {
@@ -146,6 +142,7 @@ void handleLedStream()
       Serial.print(PROTOCOL_VERSION);
       Serial.println(". Dropping connection.");
       client.stop();
+      return;
     }
 
     Serial.print("Client requests cell scale of: ");
@@ -160,6 +157,11 @@ void handleLedStream()
     Serial.println(" bytes to framebuffer.");
 
     client.readBytes( (char*)leds, incomingMessageLength * 3);
+
+    // Throw away any remaining data
+    while(client.available()){
+      client.read();
+    }
 
     for(int i=0; i < LED_COUNT;i++){
       Serial.print(leds[i].red, 16);
