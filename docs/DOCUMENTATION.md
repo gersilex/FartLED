@@ -21,9 +21,9 @@ Each component is represented as a full row. The first row (row 0) represents th
 Each component status row is represented in one of the following colors.
 
 | Color | Meaning
-| --- | ---
+| ----- | -------
 | DarkGrey | Component test running, waiting for data
-| Blue | Network card test only: DHCP registration failed, using hard-coded fallback IP
+| Blue | Network card test: DHCP registration failed, using hard-coded fallback IP
 | Red | Test failed
 | Green | Test succeeded or no feedback channel
 

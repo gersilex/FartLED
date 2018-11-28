@@ -16,7 +16,7 @@ IPAddress fallbackIP(192, 168, 59, 222);
 #define COLS 8
 #define CELL_SCALE 2
 #define CELL_COUNT (ROWS * COLS)
-#define LED_COUNT (CELL_COUNT * CELL_SCALE)
+#define NUM_LEDS (CELL_COUNT * CELL_SCALE)
 #define LED_DATA_PIN 3
 #define LED_TEST_AT_BOOT
 /////////////////////////////////////////////
@@ -24,7 +24,7 @@ IPAddress fallbackIP(192, 168, 59, 222);
 EthernetServer ledStreamServer(41);
 bool usingDhcp = false;
 
-CRGB leds[LED_COUNT];
+CRGB leds[NUM_LEDS];
 
 void setStatusRow(uint8_t row, CRGB color)
 {
@@ -45,14 +45,14 @@ void serialSetup()
 
 void ledSetup()
 {
-  FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>(leds, LED_COUNT);
+  FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>(leds, NUM_LEDS);
 
 #ifdef LED_TEST_AT_BOOT
   setStatusRow(0, CRGB::DimGray);
   Serial.print("Testing LEDs: ");
 
   Serial.print("[single] ");
-  for (int i = LED_COUNT - 1; i >= 0; i--)
+  for (int i = NUM_LEDS - 1; i >= 0; i--)
   {
     leds[i] = CRGB::White;
     FastLED.show();
@@ -74,7 +74,7 @@ void ledSetup()
   Serial.print("[all] ");
   unsigned long timeout = millis() + 10000;
   while(millis() < timeout){
-    fill_rainbow(leds, LED_COUNT, millis() / 10);
+    fill_rainbow(leds, NUM_LEDS, millis() / 10);
     FastLED.show();
   }
 
@@ -133,7 +133,7 @@ void flushInput(EthernetClient &client)
 }
 
 void strgg(){
-  fill_rainbow(leds, LED_COUNT, random(), random());
+  fill_rainbow(leds, NUM_LEDS, random(), random());
 }
 
 void handleLedStream()
@@ -179,7 +179,7 @@ void handleLedStream()
       return;
     }
 
-    if((incomingMessageLength * incomingCellScale) > LED_COUNT){
+    if((incomingMessageLength * incomingCellScale) > NUM_LEDS){
       Serial.println("ERROR: Presented message exceeds physical panel size. Discarding.");
       flushInput(client);
       return;
@@ -199,7 +199,7 @@ void handleLedStream()
       // Throw away any remaining data
     flushInput(client);
 
-    for(int i=0; i < LED_COUNT;i++){
+    for(int i=0; i < NUM_LEDS;i++){
       Serial.print(leds[i].red, 16);
       Serial.print(" ");
       Serial.print(leds[i].green, 16);
