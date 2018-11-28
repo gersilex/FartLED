@@ -6,7 +6,7 @@
 // Networking
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 IPAddress fallbackIP(192, 168, 59, 222);
-#define DHCP_TIMEOUT_MS 2000L
+#define DHCP_TIMEOUT_MS 60000L
 #define LED_STREAM_PORT 41
 #define CONTROL_PORT 23
 #define PROTOCOL_VERSION 0
@@ -124,6 +124,18 @@ void networkSetup()
   setStatusRow(2, CRGB::DimGray);
 }
 
+void flushInput(EthernetClient &client)
+{
+  while (client.available())
+  {
+    client.read();
+  }
+}
+
+void strgg(){
+  fill_rainbow(leds, LED_COUNT, random(), random());
+}
+
 void handleLedStream()
 {
   EthernetClient client = ledStreamServer.available(); // A client connected
@@ -149,21 +161,43 @@ void handleLedStream()
 
     Serial.print("Client requests cell scale of: ");
     Serial.println(incomingCellScale);
+    if (incomingCellScale == 0){
+      Serial.println("ERROR: Cell scale cannot be 0. Discarding.");
+      strgg();
+      flushInput(client);
+      return;
+    }
 
     uint8_t incomingMessageLength = client.read();
     Serial.print("Client presents message length of: ");
     Serial.println(incomingMessageLength);
+    if (incomingMessageLength == 0)
+    {
+      Serial.println("ERROR: Message length cannot be 0. Discarding.");
+      strgg();
+      flushInput(client);
+      return;
+    }
 
+    if((incomingMessageLength * incomingCellScale) > LED_COUNT){
+      Serial.println("ERROR: Presented message exceeds physical panel size. Discarding.");
+      flushInput(client);
+      return;
+    }
     Serial.print("Writing ");
     Serial.print(incomingMessageLength * 3);
     Serial.println(" bytes to framebuffer.");
 
-    client.readBytes( (char*)leds, incomingMessageLength * 3);
-
-    // Throw away any remaining data
-    while(client.available()){
-      client.read();
+    for (int b = 0; b < incomingMessageLength; b++){
+      CRGB incomingPixel[1];
+      client.readBytes((char*)incomingPixel, 3);
+      for (int i = 0; i < incomingCellScale; i++){
+        leds[b+i] = incomingPixel[0];
+      }
     }
+
+      // Throw away any remaining data
+    flushInput(client);
 
     for(int i=0; i < LED_COUNT;i++){
       Serial.print(leds[i].red, 16);
