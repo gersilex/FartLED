@@ -18,11 +18,14 @@ IPAddress fallbackIP(192, 168, 59, 222);
 #define CELL_COUNT (ROWS * COLS)
 #define NUM_LEDS (CELL_COUNT * CELL_SCALE)
 #define LED_DATA_PIN 3
-#define LED_TEST_AT_BOOT
+
+// Program
+#define DEBUG_PIN_TO_GROUND 2
 /////////////////////////////////////////////
 
 EthernetServer ledStreamServer(41);
 bool usingDhcp = false;
+bool debuggingEnabled = false;
 
 CRGB leds[NUM_LEDS];
 
@@ -38,54 +41,64 @@ void setStatusRow(uint8_t row, CRGB color)
 
 void serialSetup()
 {
-  Serial.begin(115200);
-  Serial.println(" :: FartLED :: ");
-  Serial.println("Serial console started.");
+  if (debuggingEnabled)
+  {
+    Serial.begin(115200);
+    Serial.println(" :: FartLED :: ");
+    Serial.println("Debug pin pulled low. Serial console started.");
+  }
+}
+
+void random_rainbow()
+{
+  fill_rainbow(leds, NUM_LEDS, random(), random());
+  FastLED.show();
 }
 
 void ledSetup()
 {
   FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>(leds, NUM_LEDS);
-
-#ifdef LED_TEST_AT_BOOT
-  setStatusRow(0, CRGB::DimGray);
-  Serial.print("Testing LEDs: ");
-
-  Serial.print("[single] ");
-  for (int i = NUM_LEDS - 1; i >= 0; i--)
+  if (debuggingEnabled)
   {
-    leds[i] = CRGB::White;
+    setStatusRow(0, CRGB::DimGray);
+    Serial.print("Testing LEDs: ");
+
+    Serial.print("[single] ");
+    for (int i = NUM_LEDS - 1; i >= 0; i--)
+    {
+      leds[i] = CRGB::White;
+      FastLED.show();
+      // clear this led for the next time around the loop
+      leds[i] = CRGB::Black;
+      delay(100);
+    }
+
+    Serial.print("[R] ");
+    FastLED.showColor(CRGB::Red);
+    delay(1000);
+    Serial.print("[G] ");
+    FastLED.showColor(CRGB::Green);
+    delay(1000);
+    Serial.print("[B] ");
+    FastLED.showColor(CRGB::Blue);
+    delay(1000);
+
+    Serial.print("[all] ");
+    unsigned long timeout = millis() + 10000;
+    while (millis() < timeout)
+    {
+      fill_rainbow(leds, NUM_LEDS, millis() / 10);
+      FastLED.show();
+    }
+
+    Serial.print("[30s burn-in] ");
+    FastLED.showColor(CRGB::White);
+    delay(30000);
+
+    FastLED.clear();
     FastLED.show();
-    // clear this led for the next time around the loop
-    leds[i] = CRGB::Black;
-    delay(100);
+    Serial.println("done.");
   }
-
-  Serial.print("[R] ");
-  FastLED.showColor(CRGB::Red);
-  delay(1000);
-  Serial.print("[G] ");
-  FastLED.showColor(CRGB::Green);
-  delay(1000);
-  Serial.print("[B] ");
-  FastLED.showColor(CRGB::Blue);
-  delay(1000);
-
-  Serial.print("[all] ");
-  unsigned long timeout = millis() + 10000;
-  while(millis() < timeout){
-    fill_rainbow(leds, NUM_LEDS, millis() / 10);
-    FastLED.show();
-  }
-
-  Serial.print("[30s burn-in] ");
-  FastLED.showColor(CRGB::White);
-  delay(30000);
-
-  FastLED.clear();
-  FastLED.show();
-  Serial.println("done.");
-#endif
 
   setStatusRow(0, CRGB::Green);
 }
@@ -124,18 +137,6 @@ void networkSetup()
   setStatusRow(2, CRGB::DimGray);
 }
 
-void flushInput(EthernetClient &client)
-{
-  while (client.available())
-  {
-    client.read();
-  }
-}
-
-void strgg(){
-  fill_rainbow(leds, NUM_LEDS, random(), random());
-}
-
 void handleLedStream()
 {
   EthernetClient client = ledStreamServer.available(); // A client connected
@@ -161,10 +162,10 @@ void handleLedStream()
 
     Serial.print("Client requests cell scale of: ");
     Serial.println(incomingCellScale);
-    if (incomingCellScale == 0){
+    if (incomingCellScale == 0)
+    {
       Serial.println("ERROR: Cell scale cannot be 0. Discarding.");
-      strgg();
-      flushInput(client);
+      random_rainbow();
       return;
     }
 
@@ -174,39 +175,38 @@ void handleLedStream()
     if (incomingMessageLength == 0)
     {
       Serial.println("ERROR: Message length cannot be 0. Discarding.");
-      strgg();
-      flushInput(client);
+      random_rainbow();
       return;
     }
 
-    if((incomingMessageLength * incomingCellScale) > NUM_LEDS){
+    if ((incomingMessageLength * incomingCellScale) > NUM_LEDS)
+    {
       Serial.println("ERROR: Presented message exceeds physical panel size. Discarding.");
-      flushInput(client);
       return;
     }
+
     Serial.print("Writing ");
     Serial.print(incomingMessageLength * 3);
     Serial.println(" bytes to framebuffer.");
-
-    for (int b = 0; b < incomingMessageLength; b++){
+    for (int b = 0; b < incomingMessageLength; b++)
+    {
       CRGB incomingPixel[1];
-      client.readBytes((char*)incomingPixel, 3);
-      for (int i = 0; i < incomingCellScale; i++){
-        leds[b+i] = incomingPixel[0];
+      client.readBytes((char *)incomingPixel, 3);
+      for (int i = 0; i < incomingCellScale; i++)
+      {
+        leds[b + i] = incomingPixel[0];
       }
     }
 
-      // Throw away any remaining data
-    flushInput(client);
-
-    for(int i=0; i < NUM_LEDS;i++){
-      Serial.print(leds[i].red, 16);
-      Serial.print(" ");
-      Serial.print(leds[i].green, 16);
-      Serial.print(" ");
-      Serial.print(leds[i].blue, 16);
-      Serial.println();
-    }
+    // for(int i=0; i < NUM_LEDS;i++){
+    //   Serial.print(leds[i].red, 16);
+    //   Serial.print(" ");
+    //   Serial.print(leds[i].green, 16);
+    //   Serial.print(" ");
+    //   Serial.print(leds[i].blue, 16);
+    //   Serial.println();
+    // }
+    FastLED.show();
   }
 }
 
@@ -218,12 +218,20 @@ void entropySetup()
   Serial.println(random(100));
 }
 
+void programSetup()
+{
+  // Enable Debug mode if Pin 2 is connected to Ground at boot
+  pinMode(DEBUG_PIN_TO_GROUND, INPUT_PULLUP);
+  debuggingEnabled = digitalRead(DEBUG_PIN_TO_GROUND) == LOW;
+}
+
 void setup()
 {
+  programSetup();
   serialSetup();
   ledSetup();
   networkSetup();
-  delay(1000);
+  delay(2000);
 }
 
 void loop()
@@ -233,5 +241,4 @@ void loop()
     Ethernet.maintain();
   }
   handleLedStream();
-  FastLED.show();
 }

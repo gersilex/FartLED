@@ -33,3 +33,13 @@ Usage
 - Use a FartLED client and connect to the TCP port 41 of FartLED to send data.
 
 See the [protocol specification](PROTOCOL.md) for implementation details of the FartLED API.
+
+Benchmark
+---------
+
+Using the [Python example script in the contrib folder](..\contrib\clients\python\benchmark.py) in a local Fast Ethernet network (100 Mbps) the following framerates were reached:
+
+- Cell scale of 1, full panel => 384 bytes: 50 FPS
+- Cell scale of 2, full panel => 192 bytes: 82 FPS
+
+Benchmarking happens over Serial, which takes time, so frame rates are higher when the serial connection is disabled.
