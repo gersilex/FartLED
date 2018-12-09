@@ -13,7 +13,7 @@ Boot-Up Debugging
 
 Connect Pin 2 to Ground (GND/0V) to enable Boot-Up Debugging. The Pin is checked once immediately after powering on or resetting the device. The connection from the debugging pin to Ground may be removed at any time but the device has to be reset to completely disable debugging.
 
-When powering up with Boot-Up Debugging enabled, FartLED starts verbose serial logging at 115200 baud and runs tests of all its components. Components with a feedback channel (e.g. the network adapter) report their state back to FartLED which in turn visualizes the status of the component as a colored row on the panel. Components without feedback channel (e.g. LEDs) produce output themselves and expect to be tested by the operator in the *Boot-Up* phase.
+When powering up with Boot-Up Debugging enabled, FartLED starts verbose serial logging at 115200 baud (115200,8,N,1) and runs tests of all its components. Components with a feedback channel (e.g. the network adapter) report their state back to FartLED which in turn visualizes the status of the component as a colored row on the panel. Components without feedback channel (e.g. LEDs) produce output themselves and expect to be tested by the operator in the *Boot-Up* phase.
 
 FartLED continues with normal operation after testing the components. Remember to reboot FartLED without debugging for maximum performance, because logging to serial takes a lot of time and will reduce the frame rate if left enabled.
 
