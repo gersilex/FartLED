@@ -70,7 +70,16 @@ void ledSetup()
       FastLED.show();
       // clear this led for the next time around the loop
       leds[i] = CRGB::Black;
-      delay(100);
+
+      // Show the last LED for a while
+      if (i == NUM_LEDS - 1)
+      {
+        delay(3000);
+      }
+      else
+      {
+        delay(100);
+      }
     }
 
     Serial.print("[R] ");
