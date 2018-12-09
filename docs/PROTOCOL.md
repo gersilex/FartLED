@@ -1,5 +1,5 @@
-Fart-Protocol Reference
-=======================
+FartLED Protocol Reference
+==========================
 
 LED Stream Data
 ---------------
