@@ -220,7 +220,7 @@ void entropySetup()
 
 void programSetup()
 {
-  // Enable Debug mode if Pin 2 is connected to Ground at boot
+  // Enable Debug mode if pin is connected to Ground at boot
   pinMode(DEBUG_PIN_TO_GROUND, INPUT_PULLUP);
   debuggingEnabled = digitalRead(DEBUG_PIN_TO_GROUND) == LOW;
 }
