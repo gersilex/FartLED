@@ -197,6 +197,7 @@ void handleLedStream()
     Serial.print("Writing ");
     Serial.print(incomingMessageLength * 3);
     Serial.println(" bytes to framebuffer.");
+    Serial.println();
     for (int b = 0; b < incomingMessageLength; b++)
     {
       CRGB incomingPixel[1];
@@ -238,7 +239,7 @@ void setup()
 {
   programSetup();
   serialSetup();
-  ledSetup();
+  // ledSetup();
   networkSetup();
   delay(2000);
 }
