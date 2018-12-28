@@ -152,6 +152,10 @@ void handleLedStream()
 
   if (client) // Is the client sending data?
   {
+
+    Serial.println("__________________________________________________");
+    Serial.println();
+
     byte incoming = client.read();
     byte incomingProtocolVersion = (incoming & 0xF0) >> 4;
     byte incomingCellScale = incoming & 0x0F;
@@ -198,6 +202,10 @@ void handleLedStream()
     Serial.print(incomingMessageLength * 3);
     Serial.println(" bytes to framebuffer.");
     Serial.println();
+
+    Serial.print("FPS: ");
+    Serial.println(FastLED.getFPS());
+
     for (int b = 0; b < incomingMessageLength; b++)
     {
       CRGB incomingPixel[1];
