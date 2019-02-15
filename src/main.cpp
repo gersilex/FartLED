@@ -21,6 +21,7 @@ IPAddress fallbackIP(192, 168, 59, 222);
 
 // Program
 #define DEBUG_PIN_TO_GROUND 2
+// #define LED_DEEP_TEST
 /////////////////////////////////////////////
 
 EthernetServer ledStreamServer(41);
@@ -63,6 +64,7 @@ void ledSetup()
     setStatusRow(0, CRGB::DimGray);
     Serial.print("Testing LEDs: ");
 
+#ifdef LED_DEEP_TEST
     Serial.print("[single] ");
     for (int i = NUM_LEDS - 1; i >= 0; i--)
     {
@@ -91,18 +93,21 @@ void ledSetup()
     Serial.print("[B] ");
     FastLED.showColor(CRGB::Blue);
     delay(1000);
+#endif
 
     Serial.print("[all] ");
-    unsigned long timeout = millis() + 10000;
+    unsigned long timeout = millis() + 3000;
     while (millis() < timeout)
     {
       fill_rainbow(leds, NUM_LEDS, millis() / 10);
       FastLED.show();
     }
 
+#ifdef LED_DEEP_TEST
     Serial.print("[30s burn-in] ");
     FastLED.showColor(CRGB::White);
     delay(30000);
+#endif
 
     FastLED.clear();
     FastLED.show();
