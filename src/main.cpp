@@ -247,7 +247,7 @@ void setup()
 {
   programSetup();
   serialSetup();
-  // ledSetup();
+  ledSetup();
   networkSetup();
   delay(2000);
 }
