@@ -8,6 +8,14 @@ Usage
 
 See the [protocol specification](PROTOCOL.md) for implementation details of the FartLED API.
 
+Connecting
+----------
+
+| Pin Name | Description |
+| -------- | ----------- |
+| 2        | Connect to GND and reboot to enable debugging (see [Boot-Up Debugging](#boot-up-debugging) section)
+| 3        | LED Data (Data is clocked so no seperate clock pin is required) |
+
 Boot-Up Debugging
 -----------------
 
