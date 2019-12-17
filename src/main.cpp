@@ -5,7 +5,7 @@
 /////////////// Configuration ///////////////
 // Networking
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-IPAddress fallbackIP(192, 168, 59, 222);
+IPAddress fallbackIP(172, 17, 33, 33);
 #define DHCP_TIMEOUT_MS 60000L
 #define LED_STREAM_PORT 41
 #define CONTROL_PORT 23
@@ -95,13 +95,6 @@ void ledSetup()
     delay(1000);
 #endif
 
-    Serial.print("[all] ");
-    unsigned long timeout = millis() + 3000;
-    while (millis() < timeout)
-    {
-      fill_rainbow(leds, NUM_LEDS, millis() / 10);
-      FastLED.show();
-    }
 
 #ifdef LED_DEEP_TEST
     Serial.print("[30s burn-in] ");
@@ -109,10 +102,19 @@ void ledSetup()
     delay(30000);
 #endif
 
-    FastLED.clear();
-    FastLED.show();
-    Serial.println("done.");
   }
+
+  Serial.print("[all] ");
+  unsigned long timeout = millis() + 4000;
+  while (millis() < timeout)
+  {
+    fill_rainbow(leds, NUM_LEDS, millis() / 10);
+    FastLED.show();
+  }
+
+  FastLED.clear();
+  FastLED.show();
+  Serial.println("done.");
 
   setStatusRow(0, CRGB::Green);
 }
@@ -211,7 +213,7 @@ void handleLedStream()
     Serial.print("FPS: ");
     Serial.println(FastLED.getFPS());
 
-    for (int b = 0; b < incomingMessageLength; b++)
+    for (int b = 0; b < incomingMessageLength * incomingCellScale; b+=incomingCellScale)
     {
       CRGB incomingPixel[1];
       client.readBytes((char *)incomingPixel, 3);

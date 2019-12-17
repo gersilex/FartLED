@@ -1,7 +1,7 @@
 import socket
 import time
 
-sock = socket.create_connection(("192.168.58.131", 41))
+sock = socket.create_connection(("172.17.35.216", 41))
 print("Connected to %s:%d" % sock.getpeername())
 
 i = 64
